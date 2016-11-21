@@ -16,7 +16,7 @@ export default class Feed extends Component {
             NavigatorIOS style = { styles.container }
             initialRoute = {
                 {
-                    title: 'Thread Lists',
+                    title: 'Feed',
                     component: ThreadList,
                     passProps: { listType: 'showAll', typeChanged: true }
                 }
