@@ -11,7 +11,7 @@ class SocialSim extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            selectedTab: 'Feed'
+            selectedTab: 'Map'
         };
 
     }
@@ -23,8 +23,8 @@ class SocialSim extends Component {
                     selected={this.state.selectedTab === 'Map'}
                     title = ""
                     icon={require('./icons/mapIcon.png')}
+                    selectedIcon  = {require('./icons/mapIcon_active.png')}
                     renderAsOriginal
-                    iconSize={10}
                     onPress={() => {
                         this.setState({
                             selectedTab: 'Map'
@@ -36,6 +36,7 @@ class SocialSim extends Component {
                     selected={this.state.selectedTab === 'Lab'}
                     title = ""
                     icon={require('./icons/labIcon.png')}
+                    selectedIcon  = {require('./icons/labIcon_active.png')}
                     renderAsOriginal
                     onPress={() => {
                         this.setState({
@@ -49,6 +50,7 @@ class SocialSim extends Component {
                     selected={this.state.selectedTab === 'Topic'}
                     title = ""
                     icon={require('./icons/shopIcon.png')}
+                    selectedIcon  = {require('./icons/shopIcon_active.png')}
                     renderAsOriginal
                     onPress={() => {
                         this.setState({
@@ -62,6 +64,7 @@ class SocialSim extends Component {
                     selected={this.state.selectedTab === 'Feed'}
                     title = ""
                     icon={require('./icons/feedIcon.png')}
+                    selectedIcon  = {require('./icons/feedIcon_active.png')}
                     renderAsOriginal
                     onPress={() => {
                         this.setState({

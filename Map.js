@@ -11,7 +11,7 @@ const styles = StyleSheet.create({
         resizeMode: "stretch",
         width: 375,
         height: 650,
-        marginTop:30,
+        marginTop:20,
         alignItems: 'stretch',
     },
     welcome: {

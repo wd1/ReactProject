@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F5FCFF',
+        backgroundColor: '#FFFFFF',
         padding: 10
     },
     topic: {
@@ -60,7 +60,8 @@ const styles = StyleSheet.create({
        height: 200,
        marginLeft: 70,
        marginRight: 10,
-       marginBottom: 10
+       marginBottom: 10,
+       backgroundColor: "#FFFFFF"
    }
 });
 
@@ -100,21 +101,21 @@ export default class ThreadList extends Component {
         if ( this.props.listType == 'topic') {
             if ( this.props.isTopicNameSelected == true) {
                 return {
-                    backgroundColor: '#F5FCFF',
+                    backgroundColor: '#FFFFFF',
                 }
             }
             else {
                 return {
                     marginTop: 60,
-                    backgroundColor: '#F5FCFF',
+                    backgroundColor: '#FFFFFF',
                     marginBottom:50,
                 }
             }
         }
-        else {
+        else if ( this.props.listType == 'showAll') {
             return {
                 marginTop: 60,
-                backgroundColor: '#F5FCFF',
+                backgroundColor: '#FFFFFF',
                 marginBottom:50,
             }
         }
@@ -228,7 +229,6 @@ export default class ThreadList extends Component {
                     <SpeakerMessage
                             headShotURI={this.state.npcLists[threadSelected.threadNPCName].Headshot}
                             sentences= {'@' + threadSelected.threadNPCName + ': ' + threadSelected.threadText} />
-
                     <View style={styles.threadPic}>
                         <Image source={{uri: threadSelected.threadPic}} style={{flex: 1}}/>
                     </View>

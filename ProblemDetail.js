@@ -4,11 +4,13 @@ import { StyleSheet, View, Image, Text, ScrollView, TextInput, TouchableHighligh
 import SpeakerMessage from './SpeakerMessage';
 import TimerMixin from 'react-timer-mixin';
 
+const TIME_DELAY_CHECK_POST = 3000;
+const TIME_DELAY_PROBLEM_POST = 1000;
 const styles = StyleSheet.create({
     pic: {
+        marginTop:10,
         marginLeft: 10,
         marginRight: 10,
-        marginTop: 10,
         width: 350,
         height: 250,
     },
@@ -21,7 +23,7 @@ const styles = StyleSheet.create({
    answerInput: {
         height: 36,
         fontSize: 18,
-        borderWidth: 1,
+        borderWidth: 0,
         marginRight: 10,
         borderRadius: 4,
         padding: 5,
@@ -43,7 +45,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#dddddd'
     },
     playerSentence: {
-        backgroundColor: '#F5FCFF',
+        backgroundColor: '#FFFFFF',
         padding: 10,
         textAlign : 'right'
     }
@@ -59,7 +61,7 @@ const problemViewStyle = StyleSheet.create({
     container: {
         flexDirection: 'row',
         justifyContent: 'center',
-        backgroundColor: '#F5FCFF',
+        backgroundColor: '#FFFFFF',
         padding: 10,
     },
     thumbnail: {
@@ -94,19 +96,42 @@ export default class ProblemDetail extends Component {
     constructor(props) {
         super(props);
         this.state = {
+            incorrectAnswer: '',
             answerInputed: '',
+            answerTextInputed: '',
+
+            isHintAskRequired: false,
             isHintRequired: false,
+
+            isAnswerAskRequired: false,
             isAnswerRequired: false,
+
             isInputReqruied: false,
             isReplyReqruied: false,
+
+            isSuccessAskRequired: false,
             isSuccessRequired: false,
+
+            isIncorrectAskRequired: false,
             isIncorrectRequired: false,
+
             isInputFormRequired: true,
+            isProblemImageRequired: false,
+
+            isFirstButtonRequired: false,
+            pausedIndex : 0,
+            firstAnswerButtonText:'',
+            headShotForProblemText: [],
+            problemTexts: [],
             isEnded: false,
             buttonText: this.props.independentTexts.GiveMeAHint['1'].slice(4),
             currentPost: this.props.currentThread.posts.post_1,
             postIndex: 1,
+            isTyping: false,
             answer:'',
+            lastNPCIncorrect:0,
+            lastNPCHint:0,
+            lastNPCAnswer:0,
             solvingState: INCORRECT,
             isOhIGotItRequired: false,
             isGotItRequired: false,
@@ -121,33 +146,17 @@ export default class ProblemDetail extends Component {
         var problemPicURI = (typeof this.state.currentPost.ProblemPic !== 'undefined') ? this.state.currentPost.ProblemPic : '';
         var hintPicURI = (typeof this.state.currentPost.HintPic !== 'undefined') ? this.state.currentPost.HintPic : '';
         var answerPicURI = (typeof this.state.currentPost.AnswerPic !== 'undefined') ? this.state.currentPost.AnswerPic : '';
-        var problemText = (typeof this.state.currentPost.ProblemText !== 'undefined') ? this.state.currentPost.ProblemText : '';
         var hintText = (typeof this.state.currentPost.HintText !== 'undefined') ? this.state.currentPost.HintText : '';
         var answerText = (typeof this.state.currentPost.AnswerText !== 'undefined') ? this.state.currentPost.AnswerText : '';
-        
-//        var incorrectText = (typeof this.state.currentPost.IncorrectText !== 'undefined') ? this.state.currentPost.IncorrectText : '';
-
-/*        var authorName;
-        if ( this.state.postIndex > 2 )
-            authorName = this.props.currentThread.threadVIP;
-        else
-            authorName = this.props.currentThread.threadNPCName;
-
-        problemText = '@' + this.props.currentThread.threadNPCName + ": " + problemText;
-        problemText = problemText.replace("Player", "@" + this.props.playerName);*/
 
         var npcCount = this.props.npcCount;
         var rNum3 = Math.floor((Math.random() * npcCount)) % npcCount;
         var rNum2 = Math.floor((Math.random() * npcCount)) % npcCount;
 
-
         var authorName;
         var playerName = this.props.playerName;
-        var hintNPCName = this.props.npcNameLists[rNum2].npcName;
-        var answerNPCName = this.props.npcNameLists[rNum3].npcName;
         
         var buttonAnswerText = this.props.independentTexts.GiveMeAnswer['1'];
-        
         var buttonOhNowIGotItText = this.props.independentTexts.OhNowIGotIt['1'];
 
 /*--------------------------------------Problem Text---------------------------------------------*/
@@ -155,28 +164,48 @@ export default class ProblemDetail extends Component {
             authorName = this.props.currentThread.threadVIP;
         else
             authorName = this.props.currentThread.threadNPCName;
+        
+        let speaker = this.state.problemTexts.map((r, i) => {
+                    r = this.replaceSignWithName(r, '@$', authorName);
+                    r = this.replaceSignWithName(r, '@@', playerName);
+                    var curHeadShotURI = this.props.npcLists[this.props.currentThread.threadNPCName].Headshot;
 
-//        problemText = problemText.split('@$').join('@' + authorName);
-//        problemText = problemText.split('@@').join('@' + authorName);
-        problemText = this.replaceSignWithName(problemText, '@$', authorName);
-        problemText = this.replaceSignWithName(problemText, '@@', playerName);
+                    if ( r.search(authorName+":") != -1) {
+                        curHeadShotURI = this.props.npcLists[this.props.currentThread.threadNPCName].Headshot;    
+                    } else if ( r.search(playerName + ":") != -1 ) {
+                        curHeadShotURI = this.props.playerHeadShot;
+                    }
+
+                    return <View key={i}>
+                        <SpeakerMessage 
+                        headShotURI={curHeadShotURI} 
+                        sentences={r} /> 
+           </View>
+        });
 /*--------------------------------------Problem Text---------------------------------------------*/
 
 
 /*--------------------------------------Start Hint Message---------------------------------------------*/
         var giveMeAHint = this.props.independentTexts.GiveMeAHint['1'];
         var giveMeAHintText = this.props.independentTexts.GiveMeAHintText['1'];
+        var hintNPCName = this.props.npcNameLists[this.state.lastNPCHint].npcName;
 
         giveMeAHint = this.replaceSignWithName(giveMeAHint, '@@', playerName);
         giveMeAHintText = this.replaceSignWithName(giveMeAHintText, '@@', playerName);
         giveMeAHintText = this.replaceSignWithName(giveMeAHintText, '@%', hintNPCName);
 
-        var hintImage = this.state.isHintRequired ?
+        var hintImageAsk = this.state.isHintAskRequired?
             ( 
-                <View style={{marginTop: 10}}>
+                <View style={{}}>
                     <SpeakerMessage 
                         headShotURI={this.props.playerHeadShot} 
                         sentences={giveMeAHint} /> 
+                </View> 
+            ) :
+            ( <View/>);
+        var hintImage = this.state.isHintRequired ?
+            ( 
+                <View style={{}}>
                     <SpeakerMessage 
                         headShotURI={this.props.npcLists[hintNPCName].Headshot} 
                         sentences={giveMeAHintText} /> 
@@ -191,17 +220,25 @@ export default class ProblemDetail extends Component {
 /*--------------------------------------Start Answer Message---------------------------------------------*/
         var giveMeAnswer = this.props.independentTexts.GiveMeAnswer['1'];
         var GiveMeAnswerText = this.props.independentTexts.GiveMeAnswerText['1'] + this.state.currentPost.Answer;
+        var answerNPCName = this.props.npcNameLists[this.state.lastNPCAnswer].npcName;
 
         giveMeAnswer = this.replaceSignWithName(giveMeAnswer, '@@', playerName);
         GiveMeAnswerText = this.replaceSignWithName(GiveMeAnswerText, '@@', playerName);
         GiveMeAnswerText = this.replaceSignWithName(GiveMeAnswerText, '@%', answerNPCName);
 
-        var answerImage = this.state.isAnswerRequired ?
+        var answerImageAsk = this.state.isAnswerAskRequired?
             ( 
-                <View style={{marginTop: 10, paddingRight: 10}}>
-                    <SpeakerMessage 
+                <View style={{}}>
+                    <SpeakerMessage
                         headShotURI={this.props.playerHeadShot} 
                         sentences={giveMeAnswer} /> 
+                </View> 
+            ) :
+            ( <View/>);
+
+        var answerImage = this.state.isAnswerRequired ?
+            ( 
+                <View style={{}}>
                     <SpeakerMessage 
                         headShotURI={this.props.npcLists[answerNPCName].Headshot} 
                         sentences={GiveMeAnswerText} /> 
@@ -236,12 +273,19 @@ export default class ProblemDetail extends Component {
         successfulText = this.replaceSignWithName(successfulText, '@@', playerName);
         successfulText = this.replaceSignWithName(successfulText, '@$', authorName);
 
-        var successImage = this.state.isSuccessRequired ?
+       var successAskImage = this.state.isSuccessAskRequired?
             ( 
-                <View style={{marginTop: 10, paddingRight: 10}}>
+                <View style={{}}>
                     <SpeakerMessage 
                         headShotURI={this.props.playerHeadShot} 
                         sentences={theAnswerIs} /> 
+                </View> 
+            ) :
+            ( <View/>);
+
+        var successImage = this.state.isSuccessRequired ?
+            ( 
+                <View style={{marginTop: 10, paddingRight: 10}}>
                     <SpeakerMessage 
                         headShotURI={this.props.npcLists[this.props.currentThread.threadNPCName].Headshot} 
                         sentences={successfulText} /> 
@@ -254,18 +298,28 @@ export default class ProblemDetail extends Component {
 
 /*--------------------------------------End Incorrect Text ---------------------------------------------*/
         var incorrectText = this.props.currentPost.IncorrectText;
-        var rNum4 = Math.floor((Math.random() * npcCount)) % npcCount;
-        var incorrectNPCName = this.props.npcNameLists[rNum4].npcName;
+        var incorrectNPCName = this.props.npcNameLists[this.state.lastNPCIncorrect].npcName;
+
+        var theIncorrectAnswerIs = this.props.independentTexts.TheAnswerIs['1'] + this.state.incorrectAnswer;
+
+        theIncorrectAnswerIs = this.replaceSignWithName(theIncorrectAnswerIs, '@@', playerName);
+        theIncorrectAnswerIs = this.replaceSignWithName(theIncorrectAnswerIs, '@$', incorrectNPCName);
 
         incorrectText = this.replaceSignWithName(incorrectText, '@@', playerName);
         incorrectText = this.replaceSignWithName(incorrectText, '@$', incorrectNPCName);
 
-        var incorrectImage = this.state.isIncorrectRequired ?
+        var incorrectAskImage = this.state.isIncorrectAskRequired?
             ( 
-                <View style={{marginTop: 10, paddingRight: 10}}>
+                <View style={{}}>
                     <SpeakerMessage 
                         headShotURI={this.props.playerHeadShot} 
-                        sentences={theAnswerIs} /> 
+                        sentences={theIncorrectAnswerIs} /> 
+                </View> 
+            ) :
+            ( <View/>);
+        var incorrectImage = this.state.isIncorrectRequired ?
+            ( 
+                <View style={{}}>
                     <SpeakerMessage 
                         headShotURI={this.props.npcLists[incorrectNPCName].Headshot} 
                         sentences={incorrectText} /> 
@@ -281,12 +335,18 @@ export default class ProblemDetail extends Component {
 /*--------------------------------------Start AnswerIs -------------------------------------------------*/
 
 /*--------------------------------------Start InputAnswer Form---------------------------------------------*/
-        var ansPlaceHolder = '@' + authorName + "The answer is";
-        var inputAnswerForm = this.state.isInputFormRequired ?
+
+        var ansPlaceHolder = '@' + authorName + " The answer is ";
+        var ansValue;
+        if ( this.state.isTyping == true )
+            ansValue = '@' + authorName + " The answer is " + this.state.answerTextInputed;
+        else   
+            ansValue = "";
+        var inputAnswerForm = this.state.isProblemImageRequired ?
             (
                 <View style={{paddingTop:10, paddingLeft: 10}}>
                     <View style={inputAnswerStyle.inputView}>
-                        <TextInput style={styles.answerInput} keyboardType = 'numeric' placeholder={ansPlaceHolder}
+                        <TextInput style={styles.answerInput} keyboardType = 'numeric' placeholder={ansPlaceHolder} value={ansValue}
                             onEndEditing={this.hideKeyboard.bind(this)} onChange={this.captureAnswer.bind(this)} onFocus={this.showKeyboard.bind(this)}/>
                         {replyButton}
                     </View>
@@ -306,7 +366,7 @@ export default class ProblemDetail extends Component {
 
         var ohNowIGotItImage = this.state.isOhIGotItRequired ?
             (
-                <View style={{marginTop: 10}}>
+                <View style={{}}>
                     <SpeakerMessage 
                         headShotURI={this.props.playerHeadShot} 
                         sentences={ohNowIGotIt} /> 
@@ -325,7 +385,7 @@ export default class ProblemDetail extends Component {
 
         var gotItImage = this.state.isGotItRequired ?
             (   
-                <View style={{marginTop: 10}}>
+                <View style={{}}>
                     <SpeakerMessage 
                         headShotURI={this.props.playerHeadShot} 
                         sentences={gotIt} /> 
@@ -335,8 +395,48 @@ export default class ProblemDetail extends Component {
             ( <View/> ); 
 /*--------------------------------------End GotIt---------------------------------------------*/
 
+/*--------------------------------------Start ProblemPic---------------------------------------------*/
+        var problemImage = this.state.isProblemImageRequired ?
+            (   
+                <View style={{}}>
+                    <Image source={{uri: problemPicURI}} style={styles.pic}/>
+                    <View style={styles.separator} />
+                </View> 
+            ) :
+            ( <View/> ); 
+/*--------------------------------------End ProblemPic---------------------------------------------*/
+
+/*--------------------------------------Start firstAnswerButton---------------------------------------------*/
+        var firstAnswerButton = this.state.isFirstButtonRequired?
+            (
+                <View style={{paddingLeft:10, paddingRight:10, marginTop: 10, marginBottom: 10}}>
+                    <TouchableHighlight style={styles.button}
+                                underlayColor='#327bf7'
+                                onPress={this.continuePost.bind(this)}>
+                        <Text style={styles.buttonText}>{this.state.firstAnswerButtonText}</Text>
+                    </TouchableHighlight>
+                </View>
+            ) :
+            (<View/>);
+
+/*--------------------------------------End firstAnswerButton---------------------------------------------*/
+
+/*--------------------------------------Start Answer Form---------------------------------------------*/
+        var answerForm = this.state.isProblemImageRequired?
+            (
+                <View style={{paddingLeft:10, paddingRight:10, marginTop: 10, marginBottom: 10}}>
+                        <TouchableHighlight style={styles.button}
+                                    underlayColor='#327bf7'
+                                    onPress={this.giveHint.bind(this)}>
+                            <Text style={styles.buttonText}>{this.state.buttonText}</Text>
+                        </TouchableHighlight>
+                </View>
+            ):
+            (<View/>);
+/*--------------------------------------End Answer Form---------------------------------------------*/
+
         var keypad = this.state.isInputRequired?
-            ( <View style={{height:120, width: 300}}></View>):(<View/>);
+            ( <View style={{height:130, width: 300}}></View>):(<View/>);
 
 
         return (
@@ -346,27 +446,27 @@ export default class ProblemDetail extends Component {
             }}>
                 <View>
                     <View style={problemViewStyle.problemView}> 
-                        <View style={problemViewStyle.container}>
-                            <SpeakerMessage 
-                                headShotURI={this.props.npcLists[this.props.currentThread.threadNPCName].Headshot} 
-                                sentences={problemText} />
+                        <View style={{marginTop:10}}>
+                            {speaker}
                         </View>
-                        <Image source={{uri: problemPicURI}} style={styles.pic}/>
-                        <View style={styles.separator} />
+                        {firstAnswerButton}
+                        {problemImage}
                     </View>
 
+                    {hintImageAsk}
                     {hintImage}
+
+                    {answerImageAsk}
                     {answerImage}
-                    {successImage}
+
+                    {incorrectAskImage}
                     {incorrectImage}
+                    
+                    {successAskImage}
+                    {successImage}
+
                     {inputAnswerForm}
-                    <View style={{paddingLeft:10, paddingRight:10, marginTop: 10, marginBottom: 10}}>
-                        <TouchableHighlight style={styles.button}
-                                    underlayColor='#327bf7'
-                                    onPress={this.giveHint.bind(this)}>
-                            <Text style={styles.buttonText}>{this.state.buttonText}</Text>
-                        </TouchableHighlight>
-                    </View>
+                    {answerForm}
                     {ohNowIGotItImage}
                     {gotItImage}
                 </View>
@@ -390,84 +490,170 @@ export default class ProblemDetail extends Component {
     }
 
     componentDidMount() {
+        var tmpTexts = [];
+        var tmpTexts1 = [];
+        var count = 0;
+        var index = 0;
+        tmpTexts = this.state.currentPost.ProblemText.split("\n");
+
+        tmpTexts.forEach((x) => {
+            count++;
+        });
         
-    }
+        myVar = setInterval( () => { 
+            if ( index == count-1 )
+            {
+                clearInterval(myVar);
+                tmpTexts1.push(tmpTexts[index]);
+                this.setState({isProblemImageRequired: true});
+            }
+            else 
+            {
+                if ( tmpTexts[index].search("@@:") != -1 )
+                {
+                    this.setState({pausedIndex: index});
+                    clearInterval(myVar);
+                    this.setState({isFirstButtonRequired:true});
+                }
+                else
+                {
+                    tmpTexts1.push(tmpTexts[index]);
+                    index ++;
+                }
+            }
+            this.setState({problemTexts:tmpTexts1});
 
-    componentWillReceiveProps(nextProps) {
-        alert("sdf");
+        }, TIME_DELAY_PROBLEM_POST);
     }
-
+    
     hideKeyboard(event) {
-        this.setState({ answerInputed: event.nativeEvent.text });
+        this.setState({ answerTextInputed: event.nativeEvent.text.slice(event.nativeEvent.text.search('is')+3) });
         this.setState({ isInputRequired: false});
+
     }   
 
     showKeyboard(event) {
+        this.setState({answerTextInputed: ""});
         this.setState({ isInputRequired: true});
         this.setState({ isReplyReqruied: true});
+        this.setState({isTyping: true});
     }
 
     captureAnswer(event) {
-        
+        this.setState({ answerTextInputed: event.nativeEvent.text.slice(event.nativeEvent.text.search('is')+3)  });
+
     }
 
     giveHint(event) {
+        this.setState({isIncorrectAskRequired:false});
+        this.setState({isIncorrectRequired:false});
         if ( this.state.solvingState == INCORRECT ) {
             if ( this.state.isHintRequired == false ) {
+                this.setState({isHintAskRequired:true});
+
                 setTimeout(() => { 
+                    this.setState({lastNPCHint: Math.floor((Math.random() * this.props.npcCount)) % this.props.npcCount});
                     this.setState({ isHintRequired: true })
                     this.setState({buttonText: this.props.independentTexts.GiveMeAnswer['1'].slice(4)});
                     this.setState({isIncorrectRequired: false});
-                }, 1000);
+                }, TIME_DELAY_CHECK_POST);
                 
 
             } else if (this.state.isAnswerRequired == false ) {
-                setTimeout(() => { 
+                this.setState({isAnswerAskRequired: true});
+                setTimeout(() => {
+                    this.setState({lastNPCAnswer: Math.floor((Math.random() * this.props.npcCount)) % this.props.npcCount}); 
                     this.setState({ isAnswerRequired: true });
                     this.setState({isInputFormRequired: false});
                     this.setState({isIncorrectRequired: false});
-                    this.setState({buttonText: this.replaceSignWithName(this.props.independentTexts.OhNowIGotIt[1].slice(4), '@#', "YOU")});
+                    this.setState({buttonText: this.replaceSignWithName(this.props.independentTexts.OhNowIGotIt[1].slice(4), '@#', this.props.currentThread.threadNPCName)});
                     this.setState({isEnded: true});
                     this.setState({solvingState: HELPED});
-                }, 1000);
+                }, TIME_DELAY_CHECK_POST);
             }
         }
         else if ( this.state.solvingState == HELPED ){
             if ( this.state.isOhIGotItRequired == false ) {
-                setTimeout(() => { 
-                    this.setState({isOhIGotItRequired:true});
-                }, 1000);
-                setTimeout(() => { this.gotoNextPost()}, 2000);
+                this.setState({isOhIGotItRequired:true});
+                setTimeout(() => { this.gotoNextPost()}, TIME_DELAY_CHECK_POST);
             }
         }
         else if ( this.state.solvingState == SOLVED ) {
-            if ( this.state.isOhIGotItRequired == false ) {
-                this.setState({isOhIGotItRequired:true});
-                setTimeout(() => { this.gotoNextPost()}, 2000);
-            }
+            this.setState({isOhIGotItRequired:true});
+            setTimeout(() => { this.gotoNextPost()}, TIME_DELAY_CHECK_POST);
         }
     }
     
-    checkAnswer(event) {
-        setTimeout(() => { 
-            if ( this.state.answerInputed == this.state.currentPost.Answer )
+    checkAnswer(event) {        
+            if ( this.state.answerTextInputed == this.state.currentPost.Answer )
             {
-                this.setState({isSuccessRequired: true});
-                this.setState({isIncorrectRequired: false});
-                this.setState({isInputFormRequired: false});
-                this.setState({buttonText: this.replaceSignWithName(this.props.independentTexts.GotIt[1].slice(4), '@$', this.props.currentThread.threadNPCName)});
-                this.setState({solvingState: SOLVED});
-                this.setState({isEnded: true});
-                this.setState({});
+                this.setState({isSuccessAskRequired: true});
+//                this.setState({isIncorrectAskRequired: false});
+                setTimeout(() => { 
+                    this.setState({isSuccessRequired: true});
+//                    this.setState({isIncorrectRequired: false});
+                    this.setState({isInputFormRequired: false});
+                    this.setState({buttonText: this.replaceSignWithName(this.props.independentTexts.GotIt[1].slice(4), '@$', this.props.currentThread.threadNPCName)});
+                    this.setState({solvingState: SOLVED});
+                    this.setState({isEnded: true});
+                    this.setState({});
+
+                    this.setState({isTyping: false});
+                    this.setState({answerInputed: this.state.answerTextInputed});
+                }, TIME_DELAY_CHECK_POST);
             }
             else {
-                this.setState({isIncorrectRequired: true});
-                this.setState({isSuccessRequired: false});
+                this.setState({isIncorrectAskRequired: true});
+//                this.setState({isSuccessAskRequired: false});
+                this.setState({incorrectAnswer: this.state.answerTextInputed});
+                setTimeout(() => { 
+                    this.setState({isIncorrectRequired: true});
+//                    this.setState({isSuccessRequired: false});
+                    this.setState({lastNPCIncorrect: Math.floor((Math.random() * this.props.npcCount)) % this.props.npcCount});
+                }, TIME_DELAY_CHECK_POST);
             }
-            this.setState({ isReplyReqruied: false });
-        }, 1000);
+            this.setState({isTyping: false});
+            this.setState({answerInputed: this.state.answerTextInputed});
+            this.setState({isReplyReqruied: false });
+        
     }
     
+    continuePost() {
+        var tmpTexts = [];
+        var tmpTexts1 = [];
+        var count = 0;
+        var index = this.state.pausedIndex;
+        
+        tmpTexts = this.props.currentThread.posts["post_"+(this.state.postIndex+1)].ProblemText.split("\n");
+
+        tmpTexts.forEach((x) => {
+            count++;
+        });
+        this.setState({isFirstButtonRequired:false});
+        
+        for ( var i =0; i <= index; i++ )
+            tmpTexts1.push(tmpTexts[i]);
+        
+        this.setState({problemTexts:tmpTexts1});
+
+        index = index + 1;
+        myVar = setInterval( () => { 
+            if ( index == count-1 )
+            {
+                tmpTexts1.push(tmpTexts[index]);
+                this.setState({isProblemImageRequired: true});
+                clearInterval(myVar);
+            }
+            else 
+            {
+                    tmpTexts1.push(tmpTexts[index]);
+                    index ++;
+            }
+            this.setState({problemTexts:tmpTexts1});
+
+        }, TIME_DELAY_PROBLEM_POST);
+
+    }
     addAnotherRow() {
         return <Text>New Row</Text>
     }
@@ -477,15 +663,81 @@ export default class ProblemDetail extends Component {
             this.props.navigator.pop();
             return;
         }   
+
+        var tmpTexts = [];
+        var tmpTexts1 = [];
+        var count = 0;
+        var index = 0;
+        
+        this.setState({problemTexts:tmpTexts1});
+        tmpTexts = this.props.currentThread.posts["post_"+(this.state.postIndex+1)].ProblemText.split("\n");
+
+        tmpTexts.forEach((x) => {
+            count++;
+        });
+        
+        myVar = setInterval( () => { 
+            if ( index == count-1 )
+            {
+                tmpTexts1.push(tmpTexts[index]);
+                this.setState({isProblemImageRequired: true});
+                clearInterval(myVar);
+            }
+            else 
+            {
+                if ( tmpTexts[index].search("@@:") != -1 )
+                {
+                    var txt = tmpTexts[index];
+                    txt = this.replaceSignWithName(txt, '@@', this.props.playerName);
+
+                    if ( this.state.postIndex > 2 )
+                        txt = this.replaceSignWithName(txt, '@$', this.props.currentThread.threadVIP);
+                    else    
+                        txt = this.replaceSignWithName(txt, '@$', this.props.currentThread.threadNPCName);
+
+                    
+                    this.setState({firstAnswerButtonText: txt.slice(txt.search(":")+1)});
+                    clearInterval(myVar);
+                    this.setState({isFirstButtonRequired:true});
+                    this.setState({pausedIndex: index});
+                }
+                else
+                {
+                    tmpTexts1.push(tmpTexts[index]);
+                    index ++;
+                }
+            }
+            this.setState({problemTexts:tmpTexts1});
+
+        }, TIME_DELAY_PROBLEM_POST);
+
+
         this.setState({
             answerInputed: '',
+            answerTextInputed: '',
+            isProblemImageRequired: false,
+
+            isHintAskRequired: false,
             isHintRequired: false,
+
+            isAnswerAskRequired: false,
             isAnswerRequired: false,
+
             isInputReqruied: false,
             isReplyReqruied: false,
+
+            isSuccessAskRequired: false,
             isSuccessRequired: false,
+
+            pausedIndex : 0,
+            isIncorrectAskRequired: false,
             isIncorrectRequired: false,
+            isFirstButtonRequired: false,
             isInputFormRequired: true,
+            lastNPCIncorrect:0,
+            lastNPCHint:0,
+            lastNPCAnswer:0,
+            isTyping: false,
             isEnded: false,
             buttonText: this.props.independentTexts.GiveMeAHint[2].slice(4),
             solvingState: INCORRECT,
