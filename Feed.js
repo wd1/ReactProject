@@ -22,6 +22,16 @@ export default class Feed extends Component {
                 }
             }
             />
+
+            /*            <Navigator style = { styles.container }
+                initialRoute={{ title: 'Feed', index: 0 }} 
+                renderScene={(route, navigator) => 
+                    <View><ThreadList></ThreadList></View>
+                    
+                } 
+                style={{padding: 100}} 
+            />*/
+
         );
     }
 }

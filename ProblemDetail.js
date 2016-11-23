@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Image, Text, ScrollView, TextInput, TouchableHighlight, Dimensions } from 'react-native';
+import { StyleSheet, View, Image, Text, ScrollView, TextInput, TouchableHighlight, Dimensions, TouchableWithoutFeedback } from 'react-native';
 
 import SpeakerMessage from './SpeakerMessage';
 import TimerMixin from 'react-timer-mixin';
+
+import dismissKeyboard from 'dismissKeyboard';
 
 const TIME_DELAY_CHECK_POST = 3000;
 const TIME_DELAY_PROBLEM_POST = 1000;
@@ -115,7 +117,7 @@ export default class ProblemDetail extends Component {
             isIncorrectAskRequired: false,
             isIncorrectRequired: false,
 
-            isInputFormRequired: true,
+            isInputFormRequired: false,
             isProblemImageRequired: false,
 
             isFirstButtonRequired: false,
@@ -342,16 +344,15 @@ export default class ProblemDetail extends Component {
             ansValue = '@' + authorName + " The answer is " + this.state.answerTextInputed;
         else   
             ansValue = "";
-        var inputAnswerForm = this.state.isProblemImageRequired ?
+        var inputAnswerForm = this.state.isInputFormRequired ?
             (
                 <View style={{paddingTop:10, paddingLeft: 10}}>
+
                     <View style={inputAnswerStyle.inputView}>
                         <TextInput style={styles.answerInput} keyboardType = 'numeric' placeholder={ansPlaceHolder} value={ansValue}
                             onEndEditing={this.hideKeyboard.bind(this)} onChange={this.captureAnswer.bind(this)} onFocus={this.showKeyboard.bind(this)}/>
                         {replyButton}
                     </View>
-                    
-
                 </View>
             ) :
             ( <View/> ); 
@@ -440,7 +441,7 @@ export default class ProblemDetail extends Component {
 
 
         return (
-            <ScrollView ref="scrollview" 
+            <ScrollView ref="scrollview" keyboardShouldPersistTaps={true} onPress={()=>dismissKeyboard}
                 onContentSizeChange={(contentWidth, contentHeight) => {
                 this.setState({_scrollToBottomY:contentHeight})
             }}>
@@ -506,6 +507,7 @@ export default class ProblemDetail extends Component {
                 clearInterval(myVar);
                 tmpTexts1.push(tmpTexts[index]);
                 this.setState({isProblemImageRequired: true});
+                this.setState({isInputFormRequired: true});
             }
             else 
             {
@@ -569,6 +571,7 @@ export default class ProblemDetail extends Component {
                     this.setState({buttonText: this.replaceSignWithName(this.props.independentTexts.OhNowIGotIt[1].slice(4), '@#', this.props.currentThread.threadNPCName)});
                     this.setState({isEnded: true});
                     this.setState({solvingState: HELPED});
+                    this.setState({})
                 }, TIME_DELAY_CHECK_POST);
             }
         }
@@ -585,6 +588,7 @@ export default class ProblemDetail extends Component {
     }
     
     checkAnswer(event) {        
+        dismissKeyboard();
             if ( this.state.answerTextInputed == this.state.currentPost.Answer )
             {
                 this.setState({isSuccessAskRequired: true});
@@ -642,6 +646,7 @@ export default class ProblemDetail extends Component {
             {
                 tmpTexts1.push(tmpTexts[index]);
                 this.setState({isProblemImageRequired: true});
+                this.setState({isInputFormRequired: true});
                 clearInterval(myVar);
             }
             else 
@@ -681,6 +686,7 @@ export default class ProblemDetail extends Component {
             {
                 tmpTexts1.push(tmpTexts[index]);
                 this.setState({isProblemImageRequired: true});
+                this.setState({isInputFormRequired: true});
                 clearInterval(myVar);
             }
             else 
@@ -733,7 +739,7 @@ export default class ProblemDetail extends Component {
             isIncorrectAskRequired: false,
             isIncorrectRequired: false,
             isFirstButtonRequired: false,
-            isInputFormRequired: true,
+            isInputFormRequired: false,
             lastNPCIncorrect:0,
             lastNPCHint:0,
             lastNPCAnswer:0,

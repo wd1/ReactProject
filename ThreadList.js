@@ -101,11 +101,13 @@ export default class ThreadList extends Component {
         if ( this.props.listType == 'topic') {
             if ( this.props.isTopicNameSelected == true) {
                 return {
+                    flex:1,
                     backgroundColor: '#FFFFFF',
                 }
             }
             else {
                 return {
+                    flex:1,
                     marginTop: 60,
                     backgroundColor: '#FFFFFF',
                     marginBottom:50,
@@ -114,6 +116,7 @@ export default class ThreadList extends Component {
         }
         else if ( this.props.listType == 'showAll') {
             return {
+                flex:1,
                 marginTop: 60,
                 backgroundColor: '#FFFFFF',
                 marginBottom:50,
@@ -199,7 +202,6 @@ export default class ThreadList extends Component {
 
     componentDidMount() {
         this.listenForItems(this.threadRef, this.textRef, this.npcRef, this.vipRef, this.topicsRef );
-        this.props.navigator.pop();
     }
 
     showProblemDetail(threadSelected) {
